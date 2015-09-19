@@ -9,8 +9,14 @@ class PyBot:
         if isinstance(channels, basestring): channels = [channels] #If we only have one channel, then make it a list for self.connect
         self.connect(server, channels) #Connect to the server
 
-        self.dict = {'pico-8': 'PICO-8 is a fantasy console for making, sharing and playing tiny games and other computer programs. When you turn it on, the machine greets you with a shell for typing in Lua commands and provides simple built-in tools for creating your own cartridges.',
-                     'BBS': 'http://www.lexaloffle.com/bbs/?cat=7'}
+        #self.dict = {'pico-8': 'PICO-8 is a fantasy console for making, sharing and playing tiny games and other computer programs. When you turn it on, the machine greets you with a shell for typing in Lua commands and provides simple built-in tools for creating your own cartridges.',
+        #             'BBS': 'http://www.lexaloffle.com/bbs/?cat=7'}
+        factoids = open('factoids.txt')
+        self.dict = {}
+        for factoid in factoids:
+            text = '|'.join(factoid.split('|')[1:])
+            text = text.replace('$name', self.nick).replace('<action> ', '\x01ACTION ').replace('<action>', '\x01ACTION ').replace('<reply> ', '').replace('<reply>', '')
+            self.dict[factoid.split('|')[0]] = text
 
     def connect(self, server, channels):
         self.server.connect(server)
@@ -39,6 +45,7 @@ class PyBot:
             message = ' '.join(message.split()[1:])[1:]
             if message[0] == '~':
                 try:
+                    if self.debug: print('PRIVMSG ' + channel + ' :' + self.dict[message.split()[0][1:]] + '\r\n')
                     self.server.send('PRIVMSG ' + channel + ' :' + self.dict[message.split()[0][1:]] + '\r\n')
                 except KeyError:
                     self.server.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message.split()[0] + '\'\r\n')
@@ -48,10 +55,11 @@ class PyBot:
         self.server.close()
 
 if __name__ == '__main__':
-    bot = PyBot('IvoBot', 'irc.freenode.net', '#pico8')
+    bot = PyBot('IvoBot', 'irc.freenode.net', '#pico8', True)
     while True:
         try:
             bot.process()
         except KeyboardInterrupt:
             bot.close()
+            print()
             break
