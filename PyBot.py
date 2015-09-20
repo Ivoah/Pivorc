@@ -5,13 +5,10 @@ class PyBot:
         self.nick = nick
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.debug = False
+        self.dict = {}
         if len(server) != 2: server = (server, 6667) #If we don't have a port number, use 6667
         if isinstance(channels, basestring): channels = [channels] #If we only have one channel, then make it a list for self.connect
         self.connect(server, channels) #Connect to the server
-
-        #self.dict = {'pico-8': 'PICO-8 is a fantasy console for making, sharing and playing tiny games and other computer programs. When you turn it on, the machine greets you with a shell for typing in Lua commands and provides simple built-in tools for creating your own cartridges.',
-        #             'BBS': 'http://www.lexaloffle.com/bbs/?cat=7'}
-        self.dict = {}
 
     def connect(self, server, channels):
         self.server.connect(server)
@@ -23,12 +20,12 @@ class PyBot:
         self.debug = debug
 
     def loadFactoids(self, filename):
-        factoids = open(filename)
+        self.filename = filename
+        factoids = open(self.filename)
         for factoid in factoids:
             text = '|'.join(factoid.split('|')[1:])
             text = text.replace('<action> ', '\x01ACTION ').replace('<action>', '\x01ACTION ').replace('<reply> ', '').replace('<reply>', '')
             self.dict[factoid.split('|')[0].lower()] = text
-
 
     def process(self):
         try:
@@ -46,19 +43,20 @@ class PyBot:
             nick = None
             message = message.split()
         command = message[0]
-        message = ' '.join(message[1:])
+        message = message[1:]
 
         if command == 'PING':
             self.server.send('PONG ' + message + '\r\n')
         elif command == 'PRIVMSG':
-            channel = message.split()[0]
-            message = ' '.join(message.split()[1:])[1:]
-            if message[0] == '~':
+            channel = message[0]
+            message = message[1:]
+            message[0] = message[0][1:]
+            if message[0][0] == '~':
                 try:
-                    if self.debug: print('PRIVMSG ' + channel + ' :' + self.dict[message.split()[0][1:].lower()].replace('$nick', nick) + '\r\n')
-                    self.server.send('PRIVMSG ' + channel + ' :' + self.dict[message.split()[0][1:].lower()].replace('$nick', nick) + '\r\n')
+                    if self.debug: print('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
+                    self.server.send('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
                 except KeyError:
-                    self.server.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message.split()[0] + '\'\r\n')
+                    self.server.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message[0] + '\'\r\n')
 
     def close(self):
         self.server.send('QUIT ' + self.nick + ' has better things to do\r\n')
