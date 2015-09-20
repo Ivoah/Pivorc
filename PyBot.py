@@ -3,18 +3,22 @@ import socket
 class PyBot:
     def __init__(self, nick, server, channels):
         self.nick = nick
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.debug = False
         self.dict = {}
         if len(server) != 2: server = (server, 6667) #If we don't have a port number, use 6667
+        self.server = server
         if isinstance(channels, basestring): channels = [channels] #If we only have one channel, then make it a list for self.connect
-        self.connect(server, channels) #Connect to the server
+        self.channels = channels
 
-    def connect(self, server, channels):
-        self.server.connect(server)
-        self.server.send('NICK ' + self.nick + '\r\n') #Set nickname
-        self.server.send('USER ' + self.nick + ' 8 * :' + self.nick + '\r\n') #Set username
-        self.server.send('JOIN ' + ','.join(channels) + '\r\n') #Join channels
+    def connect(self):
+        self.irc.connect(self.server)
+        self.irc.send('NICK ' + self.nick + '\r\n') #Set nickname
+        self.irc.send('USER ' + self.nick + ' 8 * :' + self.nick + '\r\n') #Set username
+        while True:
+            data = self.process()
+            if 'VERSION' in data: break
+        self.irc.send('JOIN ' + ','.join(self.channels) + '\r\n') #Join channels
 
     def setDebug(self, debug):
         self.debug = debug
@@ -29,42 +33,46 @@ class PyBot:
 
     def process(self):
         try:
-            self.server.setblocking(False)
-            message = self.server.recv(512)
-            self.server.setblocking(True)
+            self.irc.setblocking(False)
+            raw_message = self.irc.recv(512)
+            self.irc.setblocking(True)
         except socket.error:
-            return
+            return ''
 
-        if self.debug: print(message)
-        if message[0] == ':':
-            nick = message.split('!')[0][1:]
-            message = message.split()[1:]
+        if self.debug: print(raw_message)
+        if raw_message[0] == ':':
+            nick = raw_message.split('!')[0][1:]
+            message = raw_message.split()[1:]
         else:
             nick = None
-            message = message.split()
+            message = raw_message.split()
         command = message[0]
         message = message[1:]
 
         if command == 'PING':
-            self.server.send('PONG ' + message + '\r\n')
+            self.irc.send('PONG ' + ' '.join(message) + '\r\n')
         elif command == 'PRIVMSG':
             channel = message[0]
             message = message[1:]
             message[0] = message[0][1:]
             if message[0][0] == '~':
+                if channel == self.nick: channel = nick
                 try:
                     if self.debug: print('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
-                    self.server.send('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
+                    self.irc.send('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
                 except KeyError:
-                    self.server.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message[0] + '\'\r\n')
+                    self.irc.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message[0] + '\'\r\n')
+
+        return raw_message
 
     def close(self):
-        self.server.send('QUIT ' + self.nick + ' has better things to do\r\n')
-        self.server.close()
+        self.irc.send('QUIT ' + self.nick + ' has better things to do\r\n')
+        self.irc.close()
 
 if __name__ == '__main__':
-    bot = PyBot('IvoBot', 'irc.freenode.net', '#pico8')
+    bot = PyBot('IvoBot', 'irc.eversible.net', ['#cemetech', '#flood'])
     bot.setDebug(True)
+    bot.connect()
     bot.loadFactoids('factoids.txt')
     while True:
         try:
