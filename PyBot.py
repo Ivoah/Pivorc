@@ -81,8 +81,8 @@ class PyBot:
         self.irc.close()
 
 if __name__ == '__main__':
-    bot = PyBot('IvoBot', 'irc.freenode.net', ['#IvoBot'])
-    bot.setBots("Ivoah")
+    bot = PyBot('IvoBot', 'irc.eversible.net', ['#cemetech', '#flood'])
+    bot.setBots('saxjax')
     bot.setDebug(True)
     bot.setVerbose(False)
     bot.connect()
