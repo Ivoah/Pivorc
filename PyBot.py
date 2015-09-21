@@ -19,7 +19,7 @@ class PyBot:
         self.irc.send('USER ' + self.nick + ' 8 * :' + self.nick + '\r\n') #Set username
         while True:
             data = self.process()
-            if 'VERSION' in data: break
+            if 'End of /MOTD command' in data: break
         self.irc.send('JOIN ' + ','.join(self.channels) + '\r\n') #Join channels
 
     def setDebug(self, debug):
@@ -69,10 +69,10 @@ class PyBot:
             if message[i][0] == '~':
                 if channel == self.nick: channel = nick
                 try:
-                    if self.debug: print('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
-                    self.irc.send('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
+                    if self.debug: print('PRIVMSG ' + channel + ' :' + self.dict[message[i][1:].lower()].replace('$nick', nick) + '\r\n')
+                    self.irc.send('PRIVMSG ' + channel + ' :' + self.dict[message[i][1:].lower()].replace('$nick', nick) + '\r\n')
                 except KeyError:
-                    if self.verbose: self.irc.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message[0] + '\'\r\n')
+                    if self.verbose: self.irc.send('PRIVMSG ' + channel + ' : I don\'t understand the command \'' + message[i][1:] + '\'\r\n')
 
         return raw_message
 
@@ -81,8 +81,8 @@ class PyBot:
         self.irc.close()
 
 if __name__ == '__main__':
-    bot = PyBot('IvoBot', 'irc.eversible.net', ['#cemetech', '#flood'])
-    bot.setBots("saxjax")
+    bot = PyBot('IvoBot', 'irc.freenode.net', ['#IvoBot'])
+    bot.setBots("Ivoah")
     bot.setDebug(True)
     bot.setVerbose(False)
     bot.connect()
