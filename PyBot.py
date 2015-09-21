@@ -4,12 +4,14 @@ class PyBot:
     def __init__(self, nick, server, channels):
         self.nick = nick
         self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.debug = False
         self.dict = {}
         if len(server) != 2: server = (server, 6667) #If we don't have a port number, use 6667
         self.server = server
         if isinstance(channels, basestring): channels = [channels] #If we only have one channel, then make it a list for self.connect
         self.channels = channels
+        self.debug = False
+        self.bots = []
+        self.verbose = False
 
     def connect(self):
         self.irc.connect(self.server)
@@ -22,6 +24,13 @@ class PyBot:
 
     def setDebug(self, debug):
         self.debug = debug
+
+    def setBots(self, bots):
+        if isinstance(bots, basestring): self.bots = [bots]
+        else: self.bots = bots
+
+    def setVerbose(self, verbose):
+        self.verbose = verbose
 
     def loadFactoids(self, filename):
         self.filename = filename
@@ -55,13 +64,15 @@ class PyBot:
             channel = message[0]
             message = message[1:]
             message[0] = message[0][1:]
-            if message[0][0] == '~':
+            if nick in self.bots: i = 1
+            else: i = 0
+            if message[i][0] == '~':
                 if channel == self.nick: channel = nick
                 try:
                     if self.debug: print('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
                     self.irc.send('PRIVMSG ' + channel + ' :' + self.dict[message[0][1:].lower()].replace('$nick', nick) + '\r\n')
                 except KeyError:
-                    self.irc.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message[0] + '\'\r\n')
+                    if self.verbose: self.irc.send('PRIVMSG ' + channel + ' : I don\'t understand \'' + message[0] + '\'\r\n')
 
         return raw_message
 
@@ -71,7 +82,9 @@ class PyBot:
 
 if __name__ == '__main__':
     bot = PyBot('IvoBot', 'irc.eversible.net', ['#cemetech', '#flood'])
+    bot.setBots("saxjax")
     bot.setDebug(True)
+    bot.setVerbose(False)
     bot.connect()
     bot.loadFactoids('factoids.txt')
     while True:
